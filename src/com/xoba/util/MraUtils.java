@@ -53,6 +53,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.zip.GZIPInputStream;
 
 public class MraUtils {
 
@@ -1299,4 +1300,114 @@ public class MraUtils {
 		return u;
 	}
 
+	public static Iterable<String> lineReader(final URI f) throws Exception {
+
+		return lineReader(new ILineReaderHandler() {
+
+			@Override
+			public InputStream open() throws IOException {
+				InputStream in = new BufferedInputStream(f.toURL().openStream());
+				if (f.toString().toLowerCase().endsWith(".gz")) {
+					in = new GZIPInputStream(in);
+				}
+				return in;
+			}
+
+			@Override
+			public void exception(Exception e) {
+				logger.warnf("exception reading %s: %s", f, e);
+			}
+		});
+	}
+
+	public static interface ILineReaderHandler {
+
+		public InputStream open() throws IOException;
+
+		public void exception(Exception e);
+
+	}
+
+	public static Iterable<String> lineReader(final ILineReaderHandler handler) throws Exception {
+
+		return new Iterable<String>() {
+
+			@Override
+			public Iterator<String> iterator() {
+
+				try {
+					final BufferedReader reader = new BufferedReader(new InputStreamReader(handler.open()));
+
+					return new Iterator<String>() {
+
+						private String nextLine;
+
+						private void close() {
+							try {
+								reader.close();
+							} catch (IOException e) {
+								handler.exception(e);
+							}
+						}
+
+						private void prime() {
+							try {
+								if (nextLine == null) {
+									nextLine = reader.readLine();
+									if (nextLine == null) {
+										reader.close();
+									}
+								}
+							} catch (Exception e) {
+								close();
+								handler.exception(e);
+							}
+						}
+
+						@Override
+						public boolean hasNext() {
+							prime();
+							return nextLine != null;
+						}
+
+						@Override
+						public String next() {
+							try {
+								prime();
+								return nextLine;
+							} finally {
+								nextLine = null;
+							}
+						}
+
+						@Override
+						public void remove() {
+							throw new UnsupportedOperationException();
+						}
+					};
+
+				} catch (Exception e) {
+					handler.exception(e);
+					return new Iterator<String>() {
+
+						@Override
+						public boolean hasNext() {
+							return false;
+						}
+
+						@Override
+						public String next() {
+							return null;
+						}
+
+						@Override
+						public void remove() {
+							throw new UnsupportedOperationException();
+						}
+					};
+				}
+			}
+
+		};
+	}
 }
