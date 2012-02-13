@@ -70,11 +70,9 @@ public class MraUtils {
 
 	}
 
-	public static interface IDependentTask<KEY, VALUE> {
+	public static interface IDependentTask<KEY, VALUE> extends IDependentCallable<KEY, VALUE> {
 
 		public KEY getTaskID();
-
-		public VALUE call(Map<KEY, VALUE> priorResults) throws Exception;
 
 		/**
 		 * set of tasks that must be run first, before this one
@@ -84,8 +82,8 @@ public class MraUtils {
 
 	}
 
-	public static <KEY, VALUE> Map<KEY, VALUE> runIdempotentTasks(Collection<IDependentTask<KEY, VALUE>> tasks,
-			ExecutorService es, int maxRounds) throws Exception {
+	public static <KEY, VALUE> Map<KEY, VALUE> runIdempotentTasks(
+			Collection<? extends IDependentTask<KEY, VALUE>> tasks, ExecutorService es, int maxRounds) throws Exception {
 
 		final Map<KEY, VALUE> out = new HashMap<KEY, VALUE>();
 
