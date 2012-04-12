@@ -731,10 +731,10 @@ public class MraUtils {
 	 * different output
 	 */
 	public static <T> SortedMap<Integer, List<T>> splitListIntoRoughlyEqualSizePartsPseudoRandomly(long seed,
-			List<T> list, int parts) {
+			Collection<T> list, int parts) {
 
 		if (parts <= 1) {
-			return new TreeMap<Integer, List<T>>(Collections.singletonMap(1, list));
+			return new TreeMap<Integer, List<T>>(Collections.singletonMap(1, new LinkedList<T>(list)));
 		}
 
 		Random random = new Random(seed);
